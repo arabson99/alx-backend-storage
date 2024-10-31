@@ -26,6 +26,15 @@ def log_stats():
     print(f"\tmethod PATCH: {patch}")
     print(f"\tmethod DELETE: {delete}")
     print(f"{path} status check")
+    print("IPs:")
+    sorted_ips = logs_collection.aggregate([
+        {"$group": {"_id": "$ip", "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}},
+        {"$limit": 10}
+    ])
+
+    for ip in sorted_ips:
+        print(f"\t{ip.get('_id')}: {ip.get('count')}")
 
 if __name__ == "__main__":
     log_stats()
