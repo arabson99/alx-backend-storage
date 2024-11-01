@@ -103,7 +103,7 @@ class Cache:
             Return:
                 Key or number uuid
         """
-        key = self._redit.get(key)
+        key = self._redis.get(key)
 
         if fn:
             return fn(key)
