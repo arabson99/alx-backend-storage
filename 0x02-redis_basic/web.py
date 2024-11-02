@@ -1,41 +1,38 @@
 #!/usr/bin/env python3
-""" A module for fetching and caching web pages. """
+'''A module with tools for request caching and tracking.
+'''
 import redis
 import requests
 from functools import wraps
 from typing import Callable
 
-# Initialize Redis client
-r = redis.Redis()
 
-def count_calls(method: Callable) -> Callable:
-    """ Decorator to count how many time a URL is accessed and cache the result."""
+redis_store = redis.Redis()
+'''The module-level Redis instance.
+'''
+
+
+def data_cacher(method: Callable) -> Callable:
+    '''Caches the output of fetched data.
+    '''
     @wraps(method)
-    def wrapper(url: str) -> str:
-        """ Wrapper that tracks access count and manages caching."""
+    def invoker(url) -> str:
+        '''The wrapper function for caching the output.
+        '''
+        redis_store.incr(f'count:{url}')
+        result = redis_store.get(f'result:{url}')
+        if result:
+            return result.decode('utf-8')
+        result = method(url)
+        redis_store.set(f'count:{url}', 0)
+        redis_store.setex(f'result:{url}', 10, result)
+        return result
+    return invoker
 
-        cache_html = r.get(url)
-        if cache_html:
-            r.incr(f"count:{url}")
-            return cache_html.decode('utf-8')
 
-        # call the original method to fetch the page cotent
-        html = method(url)
-        # cache the result with an expiration time of 10 sec
-        r.set(url, html, ex=10)
-        r.incr(f"count:{url}", 0)
-        return html
-    return wrapper
-
-@count_calls
+@data_cacher
 def get_page(url: str) -> str:
-    """ Fetch the HTML content of a URL. """
-    request = requests.get(url)
-    request.raise_for_status()
-    return request.text
-
-if __name__ == "__main__":
-    # Test with a slow URL to demonstrate caching
-    test_url = "http://slowwly.robertomurray.co.uk/delay/5000/url/http://www.google.com"
-    print(get_page(test_url))  # First call will fetch the page
-    print(get_page(test_url))  # Second call will return the cached page
+    '''Returns the content of a URL after caching the request's response,
+    and tracking the request.
+    '''
+    return requests.get(url).text
