@@ -15,12 +15,13 @@ def count_calls(method: Callable) -> Callable:
         """ Wrapper that tracks access count and manages caching."""
         r.incr(f"count:{url}")
 
-        cache_html = r.get(f"cached:{url}")
+        cache_html = r.get(f"cache:{url}")
         if cache_html:
-            return cached_html.dcode('utf-8')
+            return cache_html.decode('utf-8')
 
         # call the original method to fetch the page cotent
         html = method(url)
+        r.set(f"count:{url}", 0)
         # cache the result with an expiration time of 10 sec
         r.setex(f"cache:{url}", 10, html)
         return html
@@ -32,8 +33,3 @@ def get_page(url: str) -> str:
     request = requests.get(url)
     request.raise_for_status()
     return request.text
-
-if __name__ == "__main__":
-    test_url = "http://slowwly.robertomurray.co.uk"
-    print(get_page(test_url)) 
-    print(get_page(test_url))  
