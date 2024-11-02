@@ -1,35 +1,39 @@
 #!/usr/bin/env python3
-""" Tracker callls """
-
+""" A module for fetching and caching web pages. """
 import redis
 import requests
-from typing import Callable
 from functools import wraps
+from typing import Callable
 
+# Initialize Redis client
 r = redis.Redis()
 
-
 def count_calls(method: Callable) -> Callable:
-    """ Decorator to know the number of calls """
-
+    """ Decorator to count how many time a URL is accessed and cache the result."""
     @wraps(method)
-    def wrapper(url):
-        """ Wrapper decorator """
+    def wrapper(url: str) -> str:
+        """ Wrapper that tracks access count and manages caching."""
         r.incr(f"count:{url}")
-        cached_html = r.get(f"cached:{url}")
-        if cached_html:
-            return cached_html.decode('utf-8')
 
+        cache_html = r.get(f"cached:{url}")
+        if cache_html:
+            return cached_html.dcode('utf-8')
+
+        # call the original method to fetch the page cotent
         html = method(url)
-        r.setex(f"cached:{url}", 10, html)
+        # cache the result with an expiration time of 10 sec
+        r.setex(f"cache:{url}", 10, html)
         return html
-
     return wrapper
-
 
 @count_calls
 def get_page(url: str) -> str:
-    """ Get page
-    """
-    req = requests.get(url)
-    return req.text
+    """ Fetch the HTML content of a URL. """
+    request = requests.get(url)
+    request.raise_for_status()
+    return request.text
+
+if __name__ == "__main__":
+    test_url = "http://slowwly.robertomurray.co.uk"
+    print(get_page(test_url)) 
+    print(get_page(test_url))  
