@@ -14,7 +14,7 @@ def count_calls(method: Callable) -> Callable:
     def wrapper(url: str) -> str:
         """ Wrapper that tracks access count and manages caching."""
 
-        cache_html = r.get(f"cache:{url}")
+        cache_html = r.get(url)
         if cache_html:
             r.incr(f"count:{url}")
             return cache_html.decode('utf-8')
@@ -33,3 +33,9 @@ def get_page(url: str) -> str:
     request = requests.get(url)
     request.raise_for_status()
     return request.text
+
+if __name__ == "__main__":
+    # Test with a slow URL to demonstrate caching
+    test_url = "http://slowwly.robertomurray.co.uk/delay/5000/url/http://www.google.com"
+    print(get_page(test_url))  # First call will fetch the page
+    print(get_page(test_url))  # Second call will return the cached page
